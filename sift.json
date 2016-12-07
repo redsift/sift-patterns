@@ -1,0 +1,124 @@
+{
+	"name": "patterns",
+	"display-name": "Patterns Sift",
+	"description": "",
+	"author": "",
+	"version": "1.0.0",
+	"icon": "assets/blueprint.svg",
+	"interfaces": {
+		"email": {
+			"thread": {
+				"controller": "dist/js/controller.umd-es2015.js"
+			},
+			"client": {
+				"controller": "dist/js/email-client-controller.umd-es2015.js"
+			}
+		},
+		"summary": {
+			"controller": "dist/js/controller.umd-es2015.js"
+		}
+	},
+	"dag": {
+		"inputs": {
+			"emails": {
+			},
+			"slack-bot": {
+			},
+			"webhooks": {
+			}
+		},
+		"nodes": [
+			{
+				"#": "Delivery Van",
+				"implementation": {
+					"javascript": "server/delivery-van.js",
+					"when": {
+						"interval": 604800
+					}
+				},
+				"outputs": {
+					"larder": {	}
+				}
+			},
+			{
+				"#": "Kennel",
+				"implementation": {
+					"javascript": "server/kennel.js",
+					"when": {
+						"interval": 300
+					}
+				},
+				"outputs": {
+					"dogVisits": {
+						"ttl": 86400
+					}
+				}
+			},
+			{
+				"#": "Dog Feeder",
+				"implementation": {
+					"javascript": "server/dog-feeder.js"
+				},
+				"input": {
+					"bucket": "dogVisits",
+					"select": "$dogName",
+					"with": {
+						"bucket": "fed",
+						"select": "$dogName"
+					},
+					"lookup": [
+						{
+							"bucket": "larder",
+							"key": "dogFood"
+						}
+					]
+				},
+				"outputs": {
+					"fed": {
+						"ttl": 86400
+					},
+					"meals": {},
+					"larder": {}
+				}
+			},
+			{
+				"#": "Daily Accounts",
+				"implementation": {
+					"javascript": "server/accounts.js",
+					"when": {
+						"interval": 10000
+					}
+				},
+				"input": {
+					"bucket": "meals",
+					"select": "*/*"
+				},
+				"outputs": {
+					"bills": {
+					}
+				}
+			}
+		],
+		"stores": {
+			"dogVisits": {
+				"key$schema": "string"
+			},
+			"fed": {
+				"key$schema": "string"
+			},
+			"meals": {
+				"key$schema": "string/string"
+			},
+			"larder": {
+				"key$schema": "string"
+			}
+		},
+		"outputs": {
+			"exports": {
+				"bills": {
+					"key$schema": "string"
+				}
+			}
+		}
+	}
+}
